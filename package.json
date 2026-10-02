@@ -1,0 +1,33 @@
+{
+  "name": "hexo-encryption-auto",
+  "version": "1.0.0",
+  "description": "Hexo plugin to encrypt specific text and images during build time with custom placeholders and Gaussian blur, decrypted via client-side password.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/**/*.test.js"
+  },
+  "keywords": [
+    "hexo",
+    "hexo-plugin",
+    "encryption",
+    "encrypt",
+    "security",
+    "password",
+    "image-encryption",
+    "gaussian-blur",
+    "aes-gcm",
+    "crypto"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "hexo": "^8.1.2",
+    "hexo-renderer-marked": "^7.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

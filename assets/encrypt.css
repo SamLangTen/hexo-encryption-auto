@@ -1,0 +1,462 @@
+/* ============================================================
+   hexo-encryption-auto CSS Styles
+   ============================================================ */
+
+/* 1. Masked Text */
+.hexo-encrypt-mask {
+  display: inline-block;
+  background: rgba(100, 116, 139, 0.15);
+  color: #64748b;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 2px;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.hexo-encrypt-container:hover .hexo-encrypt-mask {
+  background: rgba(99, 102, 241, 0.18);
+  color: #4f46e5;
+}
+
+/* 2. Encrypted Container (Block) */
+.hexo-encrypt-block {
+  position: relative;
+  margin: 1.5rem 0;
+  border: 1px dashed rgba(100, 116, 139, 0.35);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.6);
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hexo-encrypt-block:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.12);
+}
+
+.hexo-encrypt-placeholder {
+  cursor: pointer;
+  padding: 1rem;
+  position: relative;
+}
+
+/* 3. Blurred Images */
+.hexo-encrypt-blurred-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.75rem auto;
+  filter: blur(1px); /* Slight extra CSS blur on top of Gaussian blur */
+  transition: filter 0.3s ease, transform 0.3s ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+.hexo-encrypt-container:hover .hexo-encrypt-blurred-img {
+  filter: blur(0px);
+}
+
+/* 4. Lock Overlay on Block */
+.hexo-encrypt-lock-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 20px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.hexo-encrypt-container:hover .hexo-encrypt-lock-overlay {
+  background: #4f46e5;
+  color: #ffffff;
+  border-color: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.hexo-encrypt-lock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 5. Inline Container */
+.hexo-encrypt-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  vertical-align: baseline;
+  padding: 0 4px;
+  border-radius: 4px;
+  border-bottom: 1.5px dashed #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.hexo-encrypt-inline:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-bottom-color: #4f46e5;
+}
+
+.hexo-encrypt-inline-lock {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+  transition: color 0.2s ease;
+}
+
+.hexo-encrypt-inline:hover .hexo-encrypt-inline-lock {
+  color: #4f46e5;
+}
+
+/* 6. Unlocked State */
+.hexo-encrypt-unlocked {
+  border-style: solid;
+  border-color: rgba(34, 197, 94, 0.3);
+  background: transparent;
+  animation: hexoEncryptFadeIn 0.35s ease;
+}
+
+.hexo-encrypt-unlocked .hexo-encrypt-placeholder {
+  cursor: default;
+  padding: 0;
+}
+
+.hexo-encrypt-unlocked .hexo-encrypt-lock-overlay {
+  display: none !important;
+}
+
+.hexo-encrypt-unlocked .hexo-encrypt-inline-lock {
+  display: none !important;
+}
+
+.hexo-encrypt-unlocked.hexo-encrypt-inline {
+  border-bottom: none;
+  padding: 0;
+  cursor: default;
+}
+
+/* Re-lock Button */
+.hexo-encrypt-relock-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
+  z-index: 10;
+}
+
+.hexo-encrypt-block:hover .hexo-encrypt-relock-btn {
+  opacity: 1;
+}
+
+.hexo-encrypt-relock-btn:hover {
+  background: #f1f5f9;
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+
+/* 7. Modal Dialog */
+.hexo-encrypt-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.hexo-encrypt-modal-overlay.hexo-encrypt-modal-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hexo-encrypt-modal-card {
+  width: 90%;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: scale(0.92);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+
+.hexo-encrypt-modal-active .hexo-encrypt-modal-card {
+  transform: scale(1);
+}
+
+.hexo-encrypt-modal-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  background: #eef2ff;
+  color: #4f46e5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hexo-encrypt-modal-title {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.hexo-encrypt-modal-hint {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+
+.hexo-encrypt-input-group {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.hexo-encrypt-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 38px 10px 14px;
+  font-size: 0.95rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  background: #f8fafc;
+  color: #0f172a;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hexo-encrypt-input:focus {
+  border-color: #4f46e5;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.hexo-encrypt-toggle-vis {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+}
+
+.hexo-encrypt-toggle-vis:hover {
+  color: #475569;
+}
+
+.hexo-encrypt-error {
+  min-height: 18px;
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.hexo-encrypt-btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.hexo-encrypt-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.hexo-encrypt-btn-primary {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.hexo-encrypt-btn-primary:hover {
+  background: #4338ca;
+}
+
+.hexo-encrypt-btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.hexo-encrypt-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* 8. Floating Unlock Button */
+.hexo-encrypt-floating-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 46px;
+  height: 46px;
+  background: #4f46e5;
+  color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.hexo-encrypt-floating-btn:hover {
+  transform: scale(1.08);
+  background: #4338ca;
+}
+
+/* Animations */
+@keyframes hexoEncryptFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hexoEncryptShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.hexo-encrypt-shake {
+  animation: hexoEncryptShake 0.4s ease;
+}
+
+/* 9. Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .hexo-encrypt-block {
+    background: rgba(30, 41, 59, 0.4);
+    border-color: rgba(71, 85, 105, 0.5);
+  }
+  .hexo-encrypt-lock-overlay {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(71, 85, 105, 0.6);
+    color: #cbd5e1;
+  }
+  .hexo-encrypt-modal-card {
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .hexo-encrypt-modal-title {
+    color: #f8fafc;
+  }
+  .hexo-encrypt-modal-hint {
+    color: #94a3b8;
+  }
+  .hexo-encrypt-input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+  }
+  .hexo-encrypt-input:focus {
+    border-color: #6366f1;
+    background: #0f172a;
+  }
+  .hexo-encrypt-btn-secondary {
+    background: #334155;
+    color: #cbd5e1;
+  }
+  .hexo-encrypt-btn-secondary:hover {
+    background: #475569;
+  }
+  .hexo-encrypt-relock-btn {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(71, 85, 105, 0.6);
+    color: #94a3b8;
+  }
+  .hexo-encrypt-relock-btn:hover {
+    background: #334155;
+    color: #f87171;
+  }
+}
+
+/* Support explicit dark theme classes (e.g. Next, Butterfly, Fluid) */
+html.dark .hexo-encrypt-block,
+body.dark .hexo-encrypt-block,
+html[data-theme='dark'] .hexo-encrypt-block {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: rgba(71, 85, 105, 0.5);
+}
+
+html.dark .hexo-encrypt-lock-overlay,
+body.dark .hexo-encrypt-lock-overlay,
+html[data-theme='dark'] .hexo-encrypt-lock-overlay {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(71, 85, 105, 0.6);
+  color: #cbd5e1;
+}
+
+html.dark .hexo-encrypt-modal-card,
+body.dark .hexo-encrypt-modal-card,
+html[data-theme='dark'] .hexo-encrypt-modal-card {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html.dark .hexo-encrypt-input,
+body.dark .hexo-encrypt-input,
+html[data-theme='dark'] .hexo-encrypt-input {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
