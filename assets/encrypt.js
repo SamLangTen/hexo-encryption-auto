@@ -191,8 +191,8 @@
       this.input.type = 'password';
 
       const cipherEl = container ? container.querySelector('.hexo-encrypt-cipher') : null;
-      const hint = cipherEl ? cipherEl.dataset.hint : '';
-      const title = cipherEl ? cipherEl.dataset.title : '';
+      const hint = container ? (container.dataset.hint || (cipherEl ? cipherEl.dataset.hint : '')) : '';
+      const title = container ? (container.dataset.title || (cipherEl ? cipherEl.dataset.title : '')) : '';
 
       if (title) {
         this.titleEl.textContent = title;
@@ -246,6 +246,26 @@
 
   let modal = null;
 
+  function getCipherPayload(container) {
+    const raw = container.dataset.cipher;
+    if (raw && raw.includes('.')) {
+      const parts = raw.split('.');
+      if (parts.length === 4) {
+        return { salt: parts[0], iv: parts[1], tag: parts[2], cipher: parts[3] };
+      }
+    }
+    const cipherEl = container.querySelector('.hexo-encrypt-cipher');
+    if (cipherEl) {
+      return {
+        salt: cipherEl.dataset.salt,
+        iv: cipherEl.dataset.iv,
+        tag: cipherEl.dataset.tag,
+        cipher: cipherEl.dataset.cipher
+      };
+    }
+    return null;
+  }
+
   /**
    * Unlock a specific container or all matching containers
    * @param {string} password
@@ -254,7 +274,7 @@
    */
   async function unlockWithPassword(password, preferredContainer) {
     let anySuccess = false;
-    const containers = Array.from(document.querySelectorAll('.hexo-encrypt-container:not(.hexo-encrypt-unlocked)'));
+    const containers = Array.from(document.querySelectorAll('.h-enc:not(.h-unlocked), .hexo-encrypt-container:not(.hexo-encrypt-unlocked)'));
 
     // Try target first if provided
     const sortedContainers = preferredContainer && containers.includes(preferredContainer)
@@ -262,15 +282,8 @@
       : containers;
 
     for (const container of sortedContainers) {
-      const cipherEl = container.querySelector('.hexo-encrypt-cipher');
-      if (!cipherEl) continue;
-
-      const payload = {
-        salt: cipherEl.dataset.salt,
-        iv: cipherEl.dataset.iv,
-        tag: cipherEl.dataset.tag,
-        cipher: cipherEl.dataset.cipher
-      };
+      const payload = getCipherPayload(container);
+      if (!payload || !payload.salt || !payload.cipher) continue;
 
       try {
         const decryptedHtml = await decryptData(payload, password);
@@ -290,19 +303,18 @@
    * @param {string} decryptedHtml
    */
   function applyDecryption(container, decryptedHtml) {
-    const placeholderEl = container.querySelector('.hexo-encrypt-placeholder');
-    if (!placeholderEl) return;
+    const placeholderEl = container.querySelector('.h-mask, .hexo-encrypt-placeholder') || container;
 
     // Cache original placeholder for re-locking
-    if (!container._originalPlaceholderHtml) {
-      container._originalPlaceholderHtml = placeholderEl.innerHTML;
+    if (!container._originalHtml) {
+      container._originalHtml = placeholderEl.innerHTML;
     }
 
     placeholderEl.innerHTML = decryptedHtml;
-    container.classList.add('hexo-encrypt-unlocked');
+    container.classList.add('h-unlocked', 'hexo-encrypt-unlocked');
 
     // Add re-lock button if block container
-    if (config.relockButton && container.classList.contains('hexo-encrypt-block')) {
+    if (config.relockButton && (container.classList.contains('h-block') || container.classList.contains('hexo-encrypt-block'))) {
       let relockBtn = container.querySelector('.hexo-encrypt-relock-btn');
       if (!relockBtn) {
         relockBtn = document.createElement('button');
@@ -334,12 +346,10 @@
    * @param {HTMLElement} container
    */
   function relockContainer(container) {
-    if (!container._originalPlaceholderHtml) return;
-    const placeholderEl = container.querySelector('.hexo-encrypt-placeholder');
-    if (placeholderEl) {
-      placeholderEl.innerHTML = container._originalPlaceholderHtml;
-    }
-    container.classList.remove('hexo-encrypt-unlocked');
+    if (!container._originalHtml) return;
+    const placeholderEl = container.querySelector('.h-mask, .hexo-encrypt-placeholder') || container;
+    placeholderEl.innerHTML = container._originalHtml;
+    container.classList.remove('h-unlocked', 'hexo-encrypt-unlocked');
 
     const relockBtn = container.querySelector('.hexo-encrypt-relock-btn');
     if (relockBtn) {
@@ -357,7 +367,7 @@
    * Initialize all encrypted elements on the page
    */
   function init() {
-    const containers = document.querySelectorAll('.hexo-encrypt-container');
+    const containers = document.querySelectorAll('.h-enc, .hexo-encrypt-container');
     if (!containers || containers.length === 0) return;
 
     if (!modal) {
@@ -366,7 +376,7 @@
 
     containers.forEach((container) => {
       container.addEventListener('click', (e) => {
-        if (container.classList.contains('hexo-encrypt-unlocked')) return;
+        if (container.classList.contains('h-unlocked') || container.classList.contains('hexo-encrypt-unlocked')) return;
         modal.open(container);
       });
     });
@@ -383,7 +393,7 @@
         </svg>
       `;
       floatBtn.addEventListener('click', () => {
-        const firstLocked = document.querySelector('.hexo-encrypt-container:not(.hexo-encrypt-unlocked)');
+        const firstLocked = document.querySelector('.h-enc:not(.h-unlocked), .hexo-encrypt-container:not(.hexo-encrypt-unlocked)');
         modal.open(firstLocked);
       });
       document.body.appendChild(floatBtn);

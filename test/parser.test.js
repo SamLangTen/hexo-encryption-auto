@@ -8,8 +8,8 @@ const ImageProcessor = require('../lib/image-processor');
 
 test('Parser: should replace text with *** when no placeholder specified', async () => {
   const config = {
-    tag_names: ['encrypt'],
-    placeholder_tag_names: ['placeholder'],
+    tag_names: ['enc', 'encrypt'],
+    placeholder_tag_names: ['mask', 'placeholder'],
     content_tag_names: ['content'],
     default_text_placeholder: '***',
     password: 'test-password',
@@ -17,71 +17,79 @@ test('Parser: should replace text with *** when no placeholder specified', async
   };
   const imageProcessor = new ImageProcessor(null, config);
 
-  const inputHtml = '<p>公开信息</p><encrypt>这是机密文字</encrypt><p>后续公开信息</p>';
+  const inputHtml = '<p>公开信息</p><enc>这是机密文字</enc><p>后续公开信息</p>';
   const result = await parseAndEncrypt(inputHtml, {}, config, imageProcessor);
 
   assert.ok(result.hasEncryptedContent);
-  assert.ok(result.content.includes('hexo-encrypt-container'));
+  assert.ok(result.content.includes('h-enc'));
   assert.ok(result.content.includes('***'));
   // Original text should NOT be visible in plaintext
   assert.ok(!result.content.includes('这是机密文字'));
 
-  // Extract cipher payload from template
-  const saltMatch = result.content.match(/data-salt="([^"]+)"/);
-  const ivMatch = result.content.match(/data-iv="([^"]+)"/);
-  const tagMatch = result.content.match(/data-tag="([^"]+)"/);
+  // Extract compact cipher payload
   const cipherMatch = result.content.match(/data-cipher="([^"]+)"/);
+  assert.ok(cipherMatch);
+  const [salt, iv, tag, cipher] = cipherMatch[1].split('.');
+  assert.ok(salt && iv && tag && cipher);
 
-  assert.ok(saltMatch && ivMatch && tagMatch && cipherMatch);
-
-  const decrypted = decrypt({
-    salt: saltMatch[1],
-    iv: ivMatch[1],
-    tag: tagMatch[1],
-    cipher: cipherMatch[1]
-  }, 'test-password');
-
+  const decrypted = decrypt({ salt, iv, tag, cipher }, 'test-password');
   assert.strictEqual(decrypted, '这是机密文字');
 });
 
-test('Parser: should use custom placeholder when specified via <placeholder>', async () => {
+test('Parser: should use custom placeholder when specified via <mask / placeholder>', async () => {
   const config = {
-    tag_names: ['encrypt'],
-    placeholder_tag_names: ['placeholder'],
+    tag_names: ['enc', 'encrypt'],
+    placeholder_tag_names: ['mask', 'placeholder'],
     content_tag_names: ['content'],
     default_text_placeholder: '***',
     silent: true
   };
   const imageProcessor = new ImageProcessor(null, config);
 
-  const inputHtml = `<encrypt password="my-pass">
-    <placeholder>
+  const inputHtml = `<enc pass="my-pass" hint="提示数字">
+    <mask>
       <span class="custom-cover">🔒 这是自定义替代内容</span>
-    </placeholder>
-    <content>
-      <p>这是真实机密内容</p>
-    </content>
-  </encrypt>`;
+    </mask>
+    <p>这是真实机密内容</p>
+  </enc>`;
 
   const result = await parseAndEncrypt(inputHtml, {}, config, imageProcessor);
 
   assert.ok(result.hasEncryptedContent);
   assert.ok(result.content.includes('这是自定义替代内容'));
   assert.ok(!result.content.includes('这是真实机密内容'));
+  assert.ok(result.content.includes('data-hint="提示数字"'));
 
-  const saltMatch = result.content.match(/data-salt="([^"]+)"/);
-  const ivMatch = result.content.match(/data-iv="([^"]+)"/);
-  const tagMatch = result.content.match(/data-tag="([^"]+)"/);
   const cipherMatch = result.content.match(/data-cipher="([^"]+)"/);
+  assert.ok(cipherMatch);
+  const [salt, iv, tag, cipher] = cipherMatch[1].split('.');
 
-  const decrypted = decrypt({
-    salt: saltMatch[1],
-    iv: ivMatch[1],
-    tag: tagMatch[1],
-    cipher: cipherMatch[1]
-  }, 'my-pass');
-
+  const decrypted = decrypt({ salt, iv, tag, cipher }, 'my-pass');
   assert.strictEqual(decrypted, '<p>这是真实机密内容</p>');
+});
+
+test('Parser: should support mask attribute shorthand <enc mask="...">', async () => {
+  const config = {
+    tag_names: ['enc'],
+    placeholder_tag_names: ['mask'],
+    content_tag_names: ['content'],
+    default_text_placeholder: '***',
+    password: 'attr-pass',
+    silent: true
+  };
+  const imageProcessor = new ImageProcessor(null, config);
+
+  const inputHtml = '<enc mask="[已保密]">绝密内容</enc>';
+  const result = await parseAndEncrypt(inputHtml, {}, config, imageProcessor);
+
+  assert.ok(result.hasEncryptedContent);
+  assert.ok(result.content.includes('[已保密]'));
+  assert.ok(!result.content.includes('绝密内容'));
+
+  const cipherMatch = result.content.match(/data-cipher="([^"]+)"/);
+  const [salt, iv, tag, cipher] = cipherMatch[1].split('.');
+  const decrypted = decrypt({ salt, iv, tag, cipher }, 'attr-pass');
+  assert.strictEqual(decrypted, '绝密内容');
 });
 
 test('Parser: generateDefaultPlaceholder should replace text with *** and keep image tags', () => {
@@ -98,8 +106,8 @@ test('Parser: generateDefaultPlaceholder should replace text with *** and keep i
 
 test('Parser: inline text should use inline span container', async () => {
   const config = {
-    tag_names: ['encrypt'],
-    placeholder_tag_names: ['placeholder'],
+    tag_names: ['enc', 'encrypt'],
+    placeholder_tag_names: ['mask', 'placeholder'],
     content_tag_names: ['content'],
     default_text_placeholder: '***',
     password: 'inline-pass',
@@ -107,26 +115,18 @@ test('Parser: inline text should use inline span container', async () => {
   };
   const imageProcessor = new ImageProcessor(null, config);
 
-  const inputHtml = '<span>我的电话是：<encrypt>13800138000</encrypt></span>';
+  const inputHtml = '<span>我的电话是：<enc>13800138000</enc></span>';
   const result = await parseAndEncrypt(inputHtml, {}, config, imageProcessor);
 
   assert.ok(result.hasEncryptedContent);
-  assert.ok(result.content.includes('hexo-encrypt-inline'));
+  assert.ok(result.content.includes('h-inline'));
   assert.ok(!result.content.includes('<div')); // should not introduce div in inline context
   assert.ok(result.content.includes('***'));
 
-  const saltMatch = result.content.match(/data-salt="([^"]+)"/);
-  const ivMatch = result.content.match(/data-iv="([^"]+)"/);
-  const tagMatch = result.content.match(/data-tag="([^"]+)"/);
   const cipherMatch = result.content.match(/data-cipher="([^"]+)"/);
+  assert.ok(cipherMatch);
+  const [salt, iv, tag, cipher] = cipherMatch[1].split('.');
 
-  const decrypted = decrypt({
-    salt: saltMatch[1],
-    iv: ivMatch[1],
-    tag: tagMatch[1],
-    cipher: cipherMatch[1]
-  }, 'inline-pass');
-
+  const decrypted = decrypt({ salt, iv, tag, cipher }, 'inline-pass');
   assert.strictEqual(decrypted, '13800138000');
 });
-

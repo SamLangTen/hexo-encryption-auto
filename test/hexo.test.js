@@ -42,10 +42,10 @@ test('Hexo Integration: full post render, encryption, and HTML injection', async
       content: [
         '公开导言',
         '',
-        '<encrypt>',
+        '<enc>',
         '机密文本内容：用户密码是 88888888',
         '<img src="/images/secret-photo.png" alt="私密照片" />',
-        '</encrypt>',
+        '</enc>',
         '',
         '公开结尾'
       ].join('\n')
@@ -56,7 +56,7 @@ test('Hexo Integration: full post render, encryption, and HTML injection', async
 
     assert.ok(rendered.content.includes('公开导言'));
     assert.ok(rendered.content.includes('公开结尾'));
-    assert.ok(rendered.content.includes('hexo-encrypt-container'));
+    assert.ok(rendered.content.includes('h-enc'));
     assert.ok(rendered.content.includes('***'));
 
     // Original text should NOT exist anywhere in rendered content
@@ -66,21 +66,13 @@ test('Hexo Integration: full post render, encryption, and HTML injection', async
     assert.ok(rendered.content.includes('class="hexo-encrypt-blurred-img"'));
     assert.ok(rendered.content.includes('alt="私密照片"'));
 
-    // Extract cipher attributes and decrypt
-    const saltMatch = rendered.content.match(/data-salt="([^"]+)"/);
-    const ivMatch = rendered.content.match(/data-iv="([^"]+)"/);
-    const tagMatch = rendered.content.match(/data-tag="([^"]+)"/);
+    // Extract compact cipher attribute and decrypt
     const cipherMatch = rendered.content.match(/data-cipher="([^"]+)"/);
+    assert.ok(cipherMatch);
+    const [salt, iv, tag, cipher] = cipherMatch[1].split('.');
+    assert.ok(salt && iv && tag && cipher);
 
-    assert.ok(saltMatch && ivMatch && tagMatch && cipherMatch);
-
-    const decrypted = decrypt({
-      salt: saltMatch[1],
-      iv: ivMatch[1],
-      tag: tagMatch[1],
-      cipher: cipherMatch[1]
-    }, 'post-pass-123');
-
+    const decrypted = decrypt({ salt, iv, tag, cipher }, 'post-pass-123');
     assert.ok(decrypted.includes('88888888'));
     assert.ok(decrypted.includes('data:image/png;base64,')); // original image converted to data URI
 
@@ -97,7 +89,7 @@ test('Hexo Integration: full post render, encryption, and HTML injection', async
   }
 });
 
-test('Hexo Integration: custom <placeholder> tag', async () => {
+test('Hexo Integration: custom <mask / placeholder> tag', async () => {
   const hexo = new Hexo(__dirname, { silent: true });
   await hexo.init();
   await hexo.loadPlugin(require.resolve('hexo-renderer-marked'));
@@ -106,12 +98,12 @@ test('Hexo Integration: custom <placeholder> tag', async () => {
   const postData = {
     title: 'Custom Placeholder Post',
     content: [
-      '<encrypt password="block-pass" hint="提示：四位数字">',
-      '<placeholder>',
+      '<enc pass="block-pass" hint="提示：四位数字">',
+      '<mask>',
       '<span>🔒 [此处内容已隐藏，请点击解锁]</span>',
-      '</placeholder>',
+      '</mask>',
       '<p>真实的私密文字：Alpha-Bravo-Charlie</p>',
-      '</encrypt>'
+      '</enc>'
     ].join('\n')
   };
 
@@ -121,18 +113,11 @@ test('Hexo Integration: custom <placeholder> tag', async () => {
   assert.ok(!rendered.content.includes('Alpha-Bravo-Charlie'));
   assert.ok(rendered.content.includes('data-hint="提示：四位数字"'));
 
-  const saltMatch = rendered.content.match(/data-salt="([^"]+)"/);
-  const ivMatch = rendered.content.match(/data-iv="([^"]+)"/);
-  const tagMatch = rendered.content.match(/data-tag="([^"]+)"/);
   const cipherMatch = rendered.content.match(/data-cipher="([^"]+)"/);
+  assert.ok(cipherMatch);
+  const [salt, iv, tag, cipher] = cipherMatch[1].split('.');
 
-  const decrypted = decrypt({
-    salt: saltMatch[1],
-    iv: ivMatch[1],
-    tag: tagMatch[1],
-    cipher: cipherMatch[1]
-  }, 'block-pass');
-
+  const decrypted = decrypt({ salt, iv, tag, cipher }, 'block-pass');
   assert.ok(decrypted.includes('Alpha-Bravo-Charlie'));
 });
 
@@ -159,18 +144,10 @@ test('Hexo Integration: tag plugin syntax {% encrypt %} and {% placeholder %}', 
   assert.ok(rendered.content.includes('这是标签插件替代内容'));
   assert.ok(!rendered.content.includes('这是标签插件加密的真实机密内容'));
 
-  const saltMatch = rendered.content.match(/data-salt="([^"]+)"/);
-  const ivMatch = rendered.content.match(/data-iv="([^"]+)"/);
-  const tagMatch = rendered.content.match(/data-tag="([^"]+)"/);
   const cipherMatch = rendered.content.match(/data-cipher="([^"]+)"/);
+  assert.ok(cipherMatch);
+  const [salt, iv, tag, cipher] = cipherMatch[1].split('.');
 
-  const decrypted = decrypt({
-    salt: saltMatch[1],
-    iv: ivMatch[1],
-    tag: tagMatch[1],
-    cipher: cipherMatch[1]
-  }, 'tag-secret-pass');
-
+  const decrypted = decrypt({ salt, iv, tag, cipher }, 'tag-secret-pass');
   assert.ok(decrypted.includes('这是标签插件加密的真实机密内容'));
 });
-
