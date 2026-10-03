@@ -151,3 +151,39 @@ test('Hexo Integration: tag plugin syntax {% encrypt %} and {% placeholder %}', 
   const decrypted = decrypt({ salt, iv, tag, cipher }, 'tag-secret-pass');
   assert.ok(decrypted.includes('这是标签插件加密的真实机密内容'));
 });
+
+test('Hexo Integration: heading markdown should not leak original text in id and title attributes', async () => {
+  const hexo = new Hexo(__dirname, { silent: true });
+  await hexo.init();
+  await hexo.loadPlugin(require.resolve('hexo-renderer-marked'));
+  plugin(hexo);
+
+  const postData = {
+    title: 'Heading Test Post',
+    password: 'heading-pass',
+    content: [
+      '## <enc mask="Z.T.E.">朱恒成</enc>先生顺利通过博士论文答辩',
+      '',
+      '正文内容。',
+      '',
+      '参考[答辩章节](#朱恒成先生顺利通过博士论文答辩)'
+    ].join('\n')
+  };
+
+  const rendered = await hexo.post.render('test.md', postData);
+
+  // Original text should NOT appear anywhere in heading tags or attributes
+  assert.ok(!rendered.content.includes('id="朱恒成'));
+  assert.ok(!rendered.content.includes('title="朱恒成'));
+  assert.ok(!rendered.content.includes('href="#朱恒成'));
+
+  // Sanitized attributes
+  assert.ok(rendered.content.includes('id="Z-T-E-先生顺利通过博士论文答辩"'));
+  assert.ok(rendered.content.includes('href="#Z-T-E-先生顺利通过博士论文答辩"'));
+  assert.ok(rendered.content.includes('title="Z.T.E.先生顺利通过博士论文答辩"'));
+  assert.ok(rendered.content.includes('Z.T.E.</span></span>先生顺利通过博士论文答辩</h2>'));
+
+  // Verify internal reference link was also updated
+  assert.ok(rendered.content.includes('href="#Z-T-E-先生顺利通过博士论文答辩"'));
+});
+
