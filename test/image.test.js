@@ -93,3 +93,45 @@ test('ImageProcessor: sanitizePublicDirectory should overwrite public unencrypte
   }
 });
 
+test('ImageProcessor: should clean self-closing slashes and update hexo.route', async () => {
+  const sharp = require('sharp');
+  const sampleBuf = await sharp({
+    create: { width: 10, height: 10, channels: 3, background: { r: 100, g: 100, b: 100 } }
+  }).png().toBuffer();
+
+  const tmpImgPath = path.join(__dirname, 'clean-tag-test.png');
+  fs.writeFileSync(tmpImgPath, sampleBuf);
+
+  const routes = new Map();
+  const hexoMock = {
+    source_dir: __dirname,
+    base_dir: __dirname,
+    public_dir: path.join(__dirname, 'mock_public'),
+    route: {
+      set(key, val) {
+        routes.set(key, val);
+      },
+      get(key) {
+        return routes.get(key);
+      }
+    }
+  };
+
+  try {
+    const processor = new ImageProcessor(hexoMock, { replace_public_images: true, silent: true });
+    const html = `<img src="clean-tag-test.png" alt="Self Closing Image" />`;
+    const { blurredHtml } = await processor.processImages(html);
+
+    // Must NOT contain malformed rogue slash before class: '/ class='
+    assert.ok(!blurredHtml.includes('/ class='));
+    assert.ok(blurredHtml.includes('class="hexo-encrypt-blurred-img"'));
+    assert.ok(blurredHtml.includes('loading="lazy"'));
+
+    // Route must be updated with blurred buffer
+    assert.ok(routes.has('clean-tag-test.png'));
+    assert.ok(Buffer.isBuffer(routes.get('clean-tag-test.png')));
+  } finally {
+    if (fs.existsSync(tmpImgPath)) fs.unlinkSync(tmpImgPath);
+  }
+});
+

@@ -56,15 +56,13 @@
   height: auto;
   border-radius: 8px;
   margin: 0.75rem auto;
-  filter: blur(1px);
-  transition: filter 0.3s ease, transform 0.3s ease;
   user-select: none;
-  pointer-events: none;
+  pointer-events: none !important;
+  transition: transform 0.3s ease;
 }
 
-.h-enc:hover .h-blur-img,
-.hexo-encrypt-container:hover .hexo-encrypt-blurred-img {
-  filter: blur(0px);
+.h-mask .caption {
+  pointer-events: none;
 }
 
 /* 4. Lock Badge on Block (via CSS ::after or overlay) */

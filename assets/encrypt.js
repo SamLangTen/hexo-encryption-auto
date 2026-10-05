@@ -339,6 +339,13 @@
     window.dispatchEvent(new CustomEvent('hexo-encrypt:unlocked', {
       detail: { container, decryptedHtml }
     }));
+
+    // Re-bind theme lightbox if available (e.g. PhotoSwipe in Ayer theme)
+    if (typeof window.viewer_init === 'function') {
+      try {
+        window.viewer_init();
+      } catch (e) {}
+    }
   }
 
   /**

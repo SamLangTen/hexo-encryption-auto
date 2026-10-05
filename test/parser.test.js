@@ -131,6 +131,24 @@ test('Parser: inline text should use inline span container', async () => {
   assert.strictEqual(decrypted, '13800138000');
 });
 
+test('Parser: image content should use block container h-block with h-mask', async () => {
+  const config = {
+    tag_names: ['enc'],
+    password: 'block-pass',
+    silent: true
+  };
+  const imageProcessor = new ImageProcessor(null, config);
+
+  const inputHtml = '<enc><img src="data:image/png;base64,sample" alt="Block Pic" /></enc>';
+  const result = await parseAndEncrypt(inputHtml, {}, config, imageProcessor);
+
+  assert.ok(result.hasEncryptedContent);
+  // Image must be wrapped in block container (.h-block and .h-mask), NOT inline span (.h-inline)
+  assert.ok(result.content.includes('class="h-enc h-block"'));
+  assert.ok(result.content.includes('<div class="h-mask">'));
+  assert.ok(!result.content.includes('h-inline'));
+});
+
 test('Parser: sanitizeHeadings should sanitize heading id, title, and headerlink href', () => {
   const inputHtml = '<h2 id="朱恒成先生顺利通过博士论文答辩"><a href="#朱恒成先生顺利通过博士论文答辩" class="headerlink" title="朱恒成先生顺利通过博士论文答辩"></a><span class="h-enc h-inline" data-cipher="abc.def.ghi.jkl"><span class="h-mask-txt">Z.T.E.</span></span>先生顺利通过博士论文答辩</h2><p>请参考<a href="#朱恒成先生顺利通过博士论文答辩">答辩章节</a>。</p>';
 
